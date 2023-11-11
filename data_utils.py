@@ -2,10 +2,12 @@
 import gzip
 import struct
 from typing import List
+
 import numpy as np
 
 
 def load_images(path: str) -> List[np.ndarray]:
+    """Parses a MINIST images file and returns a list of numpy depicting the pixels"""
     images = []
     with gzip.open(path, "rb") as file:
         header = struct.unpack(">4i", file.read(16))
@@ -21,6 +23,7 @@ def load_images(path: str) -> List[np.ndarray]:
 
 
 def load_labels(path: str) -> np.ndarray:
+    """Parses a MINIST labels file and numpy array of the labels"""
     with gzip.open(path, "rb") as file:
         header = struct.unpack(">2i", file.read(8))
         _, size = header
