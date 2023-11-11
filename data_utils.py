@@ -1,13 +1,15 @@
 import gzip
+import struct
 
-def open_gzip(path: str) :
-    with gzip.open(path) as f:
-        file_content = f.read()
-        print(file_content.decode("utf-8", "replace"))
+def load_images(path: str) :
+    with gzip.open(path, "rb") as file:
+        header = struct.unpack('>4i', file.read(16))
+        magic, size, width, height = header
+        print(header)
 
 
 def main(file):
-    open_gzip(file)
+    load_images(file)
 
 if __name__ == "__main__":
     main("data/test-images.gz")

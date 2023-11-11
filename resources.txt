@@ -1,0 +1,1 @@
+https://alenic.github.io/snippets/2021/02/08/mnist-loader-python.html -> load the minist dataset 
