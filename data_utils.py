@@ -5,7 +5,6 @@ from typing import List
 
 import numpy as np
 
-
 def load_images(path: str) -> List[np.ndarray]:
     """Parses a MINIST images file and returns a list of numpy depicting the pixels"""
     images = []
@@ -31,3 +30,6 @@ def load_labels(path: str) -> np.ndarray:
         labels = struct.unpack(">%dB" % size, file.read())
 
         return np.array(labels, np.int32)
+    
+
+print(load_images("t10k-images-idx3-ubyte.gz"))
