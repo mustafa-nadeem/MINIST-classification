@@ -117,7 +117,8 @@ class NeuralNetwork():
             da2 = (oneHotLabels - a2) * (a2 * (1 - a2))
             print("da2: ", da2.shape)
 
-            #derivative a1 = derivative a2 * derivative z2 * derivative a1
+            #derivative a1 = derivative a2 * derivative z2 * derivative sigmoid
+            #derivative z2 = w2
             da1 = da2.dot(self.w2.T) * (a1 * (1 - a1))
 
             #updating weights
