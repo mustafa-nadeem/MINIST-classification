@@ -45,7 +45,7 @@ class NeuralNetwork():
         return np.maximum(0, x)
     
     def ReLUDerivative(self, x):
-        ...
+        return x > 0
     
     def activation(self, x, af):
         if af == "1":
@@ -53,6 +53,7 @@ class NeuralNetwork():
             return self.sigmoid(x)
         elif af == "2":
             #ReLU
+            print("relu")
             return self.ReLU(x)
         elif af == "3":
             #Softmax - placeholder for now
@@ -63,10 +64,12 @@ class NeuralNetwork():
             #Sigmoid derivative
             return self.sigmoidDerivative(x)
         elif af == "2":
-            #ReLU
-            return self.ReLU(x)
+            #ReLU derivative
+            print("rel u deriv")
+            return self.ReLUDerivative(x)
+            
         elif af == "3":
-            #Softmax - placeholder for now
+            #Softmax derivative - placeholder for now
             return self.ReLU(x) 
 
     def oneHotEncode(self, label):
@@ -138,7 +141,7 @@ class NeuralNetwork():
 
 
 nn = NeuralNetwork()
-activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU\n 3 - Softmax\n")
+activationChoice = "2" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU\n 3 - Softmax\n")
 learningRate = 0.01 #input("Enter a learning rate")
 epochs = 1 #input("Enter number of epochs")
 nn.fit(learningRate, epochs, trainingImages, trainingLabels, activationChoice)
