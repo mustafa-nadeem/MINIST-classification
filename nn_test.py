@@ -13,8 +13,11 @@ trainingLabels = np.array(load_labels("train-labels-idx1-ubyte.gz"))
 testImages = np.array(load_images("t10k-images-idx3-ubyte.gz"))
 testLabels = np.array(load_labels("t10k-labels-idx1-ubyte.gz"))
 
+
 #logging.critical((testLabels[0]))
-#print(len(trainImages))
+print("training images: ", trainingImages.shape)
+print("training labels: ", trainingLabels.shape)
+
 
 
 '''
@@ -35,12 +38,20 @@ with each element in that array being a number 0 - 255 representing pixel bright
 
 class NeuralNetwork():
     def __init__(self):
+
         #generate weights
-        self.w1 = np.random.rand(16, 784)
-        self.w2 = np.random.rand(10, 16)
+        self.w1 = np.random.rand(784, 16)
+        self.w2 = np.random.rand(16, 10)
         #generate biases    
-        self.bias1 = np.random.rand(16, 1)
-        self.bias2 = np.random.rand(10, 1)
+        self.bias1 = np.random.rand(1, 16)
+        self.bias2 = np.random.rand(1, 10)
+
+        # #generate weights
+        # self.w1 = np.random.rand(16, 784)
+        # self.w2 = np.random.rand(10, 16)
+        # #generate biases    
+        # self.bias1 = np.random.rand(16, 1)
+        # self.bias2 = np.random.rand(10, 1)
 
 
     def sigmoid(self, x):
@@ -98,7 +109,7 @@ class NeuralNetwork():
         return loss
         
     
-    def fit(self, lr, epochs, trainImg, trainLabels, activationFunc):
+    def fitOld(self, lr, epochs, trainImg, trainLabels, activationFunc):
 
         oneHotLabels = self.oneHotEncode(trainLabels)
         print("one-hot encoded labels shape: ", oneHotLabels.shape)
@@ -110,15 +121,23 @@ class NeuralNetwork():
                 img.shape += (1,)
                 l.shape += (1,)
 
-                #first layer - matrix dot multiplication of weights with input layer + bias
+                #input layer to hidden layer - matrix dot multiplication of weights with input layer + bias
                 z1 = self.w1.dot(img) + self.bias1
+                print("z1 shape ", z1.shape)
+                print("z1: ", z1)
                 #feeding z1 into activation function for non-linearity
                 a1 = self.activation(z1, activationFunc)
+                print("a1 shape ", a1.shape)
+                print("a1: ", a1)
                 
-                #second layer - dot multiplication of weights with output of first layer + bias
+                #hidden layer to output layer - dot multiplication of weights with output of first layer + bias
                 z2 = self.w2.dot(a1) + self.bias2
+                print("z2 shape ", z2.shape)
+                print("z2 ", z2)
                 #feeding z2 into activation function again
                 a2 = self.activation(z2, activationFunc)
+                print("a2 shape ", a2.shape)
+                print("a2 ", a2)
 
                 '''Cost / Loss'''
 
@@ -149,9 +168,7 @@ class NeuralNetwork():
             # #da1 = da2.T.dot(self.w2) * (a1 * (1 - a1))
             # print("da1 shape: ", da1.shape)
 
-            # '''
-            # x: (5, 3) imgTrain (784, 60000)
-            # y: (1, 5) imgLabel (60000, 10)
+            # ''' 
             # a2:  (5, 1) (10, 60000)
             # a2_delta:  (5, 1) (10, 60000)
             # a1_delta:  (5, 4) (10, 10)
@@ -165,7 +182,49 @@ class NeuralNetwork():
             # #dz1/dw1 = trainImg
             # self.w2 -= lr * a1.T.dot(da2)
             # self.w1 -= lr * trainImg.T.dot(da1)
+                
+    def fit (self, lr, epochs, trainImg, trainLabels, activationFunc):
+
+        oneHotLabels = self.oneHotEncode(trainLabels)
+        print("one-hot encoded labels shape: ", oneHotLabels.shape)
+
+        
+        for epoch in range (0, epochs):
+            ''' Forward prop '''
+            #input layer to hidden layer - matrix dot multiplication of weights with input layer + bias
+            z1 = np.dot(trainImg, self.w1) + self.bias1
+            #feeding z1 into activation function for non-linearity
+            a1 = self.activation(z1, activationFunc)
+            print("a1 shape: ", a1.shape)
+
+            #hidden layer to output layer - dot multiplication of weights with output of first layer + bias
+            z2 = np.dot(a1, self.w2) + self.bias2
+            #feeding z2 into activation function again
+            a2 = self.activation(z2, activationFunc)
+            print("a2 shape: ", a2.shape)
+
+            ''' Back prop'''
+            #oneHotLabels - a2 is derivative of loss function
+            #a2 * (1 - a2) is derivative of sigmoid
+            #derivative a2 = derivative loss * derivative sigmoid
+            da2 = (oneHotLabels - a2) * (a2 * (1 - a2))
+            print("da2: ", da2.shape)
+
+            #derivative a1 = derivative a2 * derivative z2 * derivative a1
+            da1 = da2.dot(self.w2.T) * (a1 * (1 - a1))
+
+            #updating weights
             
+            #effect of w2 on loss = derivative loss * derivative sigmoid * derivative z2
+            #da2 = derivative loss * derivative sigmoid
+            self.w2 -= lr * a1.T.dot(da2)
+            print("w2 updated: ", self.w2.shape)
+
+            #effect of w1 on loss = derivative a1 * derivative z1
+            #derivative z1 = trainImg
+            self.w1 -= lr * trainImg.T.dot(da1)
+            print("w1 updated: ", self.w1.shape)
+
 
             
 
@@ -176,3 +235,17 @@ learningRate = 0.01 #input("Enter a learning rate")
 epochs = 1 #input("Enter number of epochs")
 nn.fit(learningRate, epochs, trainingImages, trainingLabels, activationChoice)
 print("done")
+
+'''
+Trying to match with example Lab solution, trying to do all images at once instead of loop method
+x:  (5, 3) | trainingImages is (60000, 784) 
+y:  (1, 5) [transpose to (5, 1)] | trainingLabels is (60000,) [converts to (60000, 10)]
+w1: (3, 4) | (784, 16) 
+z1: (5, 3) x (3, 4) = (5, 4) | (60000, 784) x (784, 16) = (60000, 16)
+w2: (4, 1) | (16, 10)
+z2: (5, 4) x (4, 1) = (5, 1) | (60000, 16) x (16, 10) = (60000, 10) 
+
+backprop:
+da2: (5, 1) | (60000, 10)
+da1: (5, 4) | (60000, 16)
+'''
