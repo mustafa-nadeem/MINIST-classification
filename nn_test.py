@@ -112,19 +112,19 @@ class NeuralNetwork():
 
             ''' Back prop'''
             #oneHotLabels - a2 is derivative of loss (Mean Squared Error)
-            #a2 * (1 - a2) is derivative of sigmoid
-            #derivative a2 = derivative loss * derivative sigmoid
-            da2 = (oneHotLabels - a2) * (a2 * (1 - a2))
+            #derivative a2 = derivative loss * derivative activation
+            da2 = (oneHotLabels - a2) * self.activationDerivatiive(a2, activationFunc)
             print("da2: ", da2.shape)
 
-            #derivative a1 = derivative a2 * derivative z2 * derivative sigmoid
+            #derivative a1 = derivative a2 * derivative z2 * derivative activation
             #derivative z2 = w2
-            da1 = da2.dot(self.w2.T) * (a1 * (1 - a1))
+            da1 = da2.dot(self.w2.T) * self.activationDerivatiive(a1, activationFunc)
 
             #updating weights
 
-            #effect of w2 on loss = derivative loss * derivative sigmoid * derivative z2
-            #da2 = derivative loss * derivative sigmoid
+            #effect of w2 on loss = derivative loss * derivative activation * derivative z2
+            #da2 = derivative loss * derivative activation
+            #derivative z2 = a1
             self.w2 -= lr * a1.T.dot(da2)
             print("w2 updated: ", self.w2.shape)
 
