@@ -36,16 +36,24 @@ class NeuralNetwork():
 
 
     def sigmoid(self, x):
-        return 1.0 / (1.0 + np.exp(-x))
+        #return 1.0 / (1.0 + np.exp(-x))
+        return 1 / (1 + np.e ** -x)
     
     def sigmoidDerivative(self, x):
-        return self.sigmoid(x) * (1 - self.sigmoid(x))
+        return x * (1.0 - x)
+        #return self.sigmoid(x) * (1 - self.sigmoid(x))
     
     def ReLU(self, x):
         return np.maximum(0, x)
     
     def ReLUDerivative(self, x):
-        return x > 0
+        return (x >= 0) * 1
+    
+    def softmax(self, x):
+        return np.exp(x) / np.sum(np.exp(x))
+    
+    def softmaxDerivative(self, x):
+        ...
     
     def activation(self, x, af):
         if af == "1":
@@ -53,11 +61,10 @@ class NeuralNetwork():
             return self.sigmoid(x)
         elif af == "2":
             #ReLU
-            print("relu")
             return self.ReLU(x)
         elif af == "3":
             #Softmax - placeholder for now
-            return self.ReLU(x) 
+            return self.softmax(x)
     
     def activationDerivatiive(self, x, af):
         if af == "1":
@@ -65,7 +72,6 @@ class NeuralNetwork():
             return self.sigmoidDerivative(x)
         elif af == "2":
             #ReLU derivative
-            print("rel u deriv")
             return self.ReLUDerivative(x)
             
         elif af == "3":
@@ -116,12 +122,12 @@ class NeuralNetwork():
             ''' Back prop'''
             #oneHotLabels - a2 is derivative of loss (Mean Squared Error)
             #derivative a2 = derivative loss * derivative activation
-            da2 = (oneHotLabels - a2) * self.activationDerivatiive(z2, activationFunc)
+            da2 = (oneHotLabels - a2) * self.activationDerivatiive(a2, activationFunc)
             print("da2: ", da2.shape)
 
             #derivative a1 = derivative a2 * derivative z2 * derivative activation
             #derivative z2 = w2
-            da1 = da2.dot(self.w2.T) * self.activationDerivatiive(z1, activationFunc)
+            da1 = da2.dot(self.w2.T) * self.activationDerivatiive(a1, activationFunc)
 
             #updating weights
 
@@ -141,7 +147,7 @@ class NeuralNetwork():
 
 
 nn = NeuralNetwork()
-activationChoice = "2" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU\n 3 - Softmax\n")
+activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU\n 3 - Softmax\n")
 learningRate = 0.01 #input("Enter a learning rate")
 epochs = 1 #input("Enter number of epochs")
 nn.fit(learningRate, epochs, trainingImages, trainingLabels, activationChoice)
