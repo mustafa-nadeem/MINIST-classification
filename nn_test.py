@@ -33,48 +33,29 @@ class NeuralNetwork():
         #generate biases    
         self.bias1 = np.random.rand(1, 16)
         self.bias2 = np.random.rand(1, 10)
-
-
-    def sigmoid(self, x):
-        return 1.0 / (1.0 + np.exp(-x))
     
-    def sigmoidDerivative(self, x):
-        return x * (1.0 - x)
-    
-    def ReLU(self, x):
-        return np.maximum(0, x)
-    
-    def ReLUDerivative(self, x):
-        return (x >= 0) * 1
-    
-    def softmax(self, x):
-        return np.exp(x) / np.sum(np.exp(x))
-    
-    def softmaxDerivative(self, x):
-        ...
     
     def activation(self, x, af):
         if af == "1":
             #Sigmoid
-            return self.sigmoid(x)
+            return 1.0 / (1.0 + np.exp(-x))
         elif af == "2":
             #ReLU
-            return self.ReLU(x)
+            return np.maximum(0, x)
         elif af == "3":
-            #Softmax - placeholder for now
-            return self.softmax(x)
+            #Softmax
+            return np.exp(x) / np.sum(np.exp(x))
     
     def activationDerivatiive(self, x, af):
         if af == "1":
             #Sigmoid derivative
-            return self.sigmoidDerivative(x)
+            return x * (1.0 - x)
         elif af == "2":
             #ReLU derivative
-            return self.ReLUDerivative(x)
-            
+            return (x >= 0) * 1
         elif af == "3":
-            #Softmax derivative - placeholder for now
-            return self.ReLU(x) 
+            #Softmax derivative -- placeholder
+            return (x >= 0) * 1
 
     def oneHotEncode(self, label):
         '''
@@ -117,7 +98,7 @@ class NeuralNetwork():
             a2 = self.activation(z2, activationFunc)
             print("a2 shape: ", a2.shape)
 
-            ''' Back prop'''
+            ''' Back prop '''
             #oneHotLabels - a2 is derivative of loss (Mean Squared Error)
             #derivative a2 = derivative loss * derivative activation
             da2 = (oneHotLabels - a2) * self.activationDerivatiive(a2, activationFunc)
