@@ -36,12 +36,10 @@ class NeuralNetwork():
 
 
     def sigmoid(self, x):
-        #return 1.0 / (1.0 + np.exp(-x))
-        return 1 / (1 + np.e ** -x)
+        return 1.0 / (1.0 + np.exp(-x))
     
     def sigmoidDerivative(self, x):
         return x * (1.0 - x)
-        #return self.sigmoid(x) * (1 - self.sigmoid(x))
     
     def ReLU(self, x):
         return np.maximum(0, x)
