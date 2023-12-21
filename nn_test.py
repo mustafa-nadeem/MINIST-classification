@@ -19,32 +19,25 @@ with each element in that array being a number 0 - 255 representing pixel bright
 For trainImages to be dot multiplied, it needs to be turned into a numpy array
 '''
 
-#logging.critical((testLabels[0]))
-print("training images: ", trainingImages.shape)
-print("training labels: ", trainingLabels.shape)
-
 
 class NeuralNetwork():
     def __init__(self):
 
         #generate weights
-        self.w1 = np.random.rand(784, 16)
-        self.w2 = np.random.rand(16, 10)
+        self.w1 = 2 * np.random.rand(784, 16) - 1 
+        self.w2 = 2 * np.random.rand(16, 10) - 1 
         #generate biases    
-        self.bias1 = np.random.rand(1, 16)
-        self.bias2 = np.random.rand(1, 10)
+        self.b1 = 2 * np.random.rand(1, 16) - 1
+        self.b2 = 2 * np.random.rand(1, 10) - 1
     
     
     def activation(self, x, af):
         if af == "1":
             #Sigmoid
-            return 1.0 / (1.0 + np.exp(-x))
+            return 1 / (1 + np.exp(-x))
         elif af == "2":
             #ReLU
             return np.maximum(0, x)
-        elif af == "3":
-            #Softmax
-            return np.exp(x) / np.sum(np.exp(x))
     
     def activationDerivatiive(self, x, af):
         if af == "1":
@@ -53,9 +46,9 @@ class NeuralNetwork():
         elif af == "2":
             #ReLU derivative
             return (x >= 0) * 1
-        elif af == "3":
-            #Softmax derivative -- placeholder
-            return (x >= 0) * 1
+    
+    def softmax(self, x):
+        return np.exp(x) / np.sum(np.exp(x))
 
     def oneHotEncode(self, label):
         '''
@@ -87,61 +80,96 @@ class NeuralNetwork():
         for epoch in range (0, epochs):
             ''' Forward prop '''
             #input layer to hidden layer - matrix dot multiplication of weights with input layer + bias
-            z1 = np.dot(trainImg, self.w1) + self.bias1
+            z1 = np.dot(trainImg, self.w1) + self.b1
             #feeding z1 into activation function for non-linearity
             a1 = self.activation(z1, activationFunc)
-            print("a1 shape: ", a1.shape)
-
-            #hidden layer to output layer - dot multiplication of weights with output of first layer + bias
-            z2 = np.dot(a1, self.w2) + self.bias2
-            #feeding z2 into activation function again
-            a2 = self.activation(z2, activationFunc)
-            print("a2 shape: ", a2.shape)
-
-            ''' Back prop '''
-            #oneHotLabels - a2 is derivative of loss (Mean Squared Error)
-            #derivative a2 = derivative loss * derivative activation
-            da2 = (oneHotLabels - a2) * self.activationDerivatiive(a2, activationFunc)
-            print("da2: ", da2.shape)
-
-            #derivative a1 = derivative a2 * derivative z2 * derivative activation
-            #derivative z2 = w2
-            da1 = da2.dot(self.w2.T) * self.activationDerivatiive(a1, activationFunc)
-
-            #updating weights
-
-            #effect of w2 on loss = derivative loss * derivative activation * derivative z2
-            #da2 = derivative loss * derivative activation
-            #derivative z2 = a1
-            self.w2 -= lr * a1.T.dot(da2)
-            print("w2 updated: ", self.w2.shape)
-
-            #effect of w1 on loss = derivative a1 * derivative z1
-            #derivative z1 = trainImg
-            self.w1 -= lr * trainImg.T.dot(da1)
-            print("w1 updated: ", self.w1.shape)
-
-
             
+            #hidden layer to output layer - dot multiplication of weights with output of first layer + bias
+            z2 = np.dot(a1, self.w2) + self.b2
+            #feeding into activation function again
+            a2 = self.activation(z2, activationFunc)
+            
+            ''' Back prop '''
+            #delta a2 = dL/da2 * da2/dz2
+            #dL/da2 = oneHotLabels - a2 (Mean Squared Error derivative)
+            da2 = (oneHotLabels - a2) * self.activationDerivatiive(a2, activationFunc)
+            
+            #delta a1 = delta a2 * dz2/da1 * da1/dz1
+            #da1/dz1 = w2
+            da1 = da2.dot(self.w2.T) * self.activationDerivatiive(a1, activationFunc)
+        
+            #for updating biases
+            identityMatrix = np.ones((60000, 1))
+
+            #--Updating Weights and Biases--
+
+            #dL/dw2 = da2 * dz2/dw2
+            #da2 = dL/da2 * da2/dz2
+            #dz2/dw2 = a1
+            self.w2 -= lr * a1.T.dot(da2)
+
+            #dL/db2 = da2 * dz2/db2
+            #dz2/db2 = identity matrix
+            self.b2 -= lr * np.dot(identityMatrix.T, da2)
+
+            #dL/dw1 = delta a1 * dz1/dw1
+            #dz1/dw1 = trainImg
+            self.w1 -= lr * trainImg.T.dot(da1)
+            
+            #dL/db1 = delta a1 * dz1/db1
+            #dz1/db1 = identity matrix
+            self.b1 -= lr * np.dot(identityMatrix.T, da1)
+    
+    def predict(self, x, activationFunc):
+        z1 = np.dot(x, self.w1) + self.b1
+        a1 = self.activation(z1, activationFunc)
+        z2 = np.dot(a1, self.w2) + self.b2
+        a2 = self.activation(z2, activationFunc)
+        return a2
+
+'''
+#Here is a simpler version of the neural network for testing
+
+# The numbers being fed into sigmoid need to be close to 0, otherwise, the output of the sigmoid function
+# will be 1 for every element in the numpy array. This is because sigmoid uses e^x.
+# When x is a negative number like -6000, the number produced from e^x becomes too small so the sigmoid function just
+# does 1 / 1 = 1 for every value
+# Question is why do the values become so weird on subsequent loops?
+def sigmoidTester(z):
+    return 1 / (1 + np.exp(-np.clip(z, -500, 500)))
+
+tr = trainingImages / 255.0
+w1 = 2 * np.random.rand(784, 16) - 1
+w2 = 2 * np.random.rand(16, 10) - 1
+print("w2 ", w2[0])
+y = nn.oneHotEncode(trainingLabels) 
+
+for epoch in range (0, epochs):
+    #~~forward prop~~
+    z1 = np.dot(tr, w1)
+    print("z1 ", z1[0]) #This produces expected numbers for the first loop but subsequent loops look weird
+    a1 = sigmoidTester(z1)
+    z2 = np.dot(a1, w2)
+    a2 = sigmoidTester(z2)
+    
+    #~~backward prop~~
+    da2 = (y - a2) * (a2 * (1.0 - a2))
+    da1 = da2.dot(w2.T) * (a1 * (1.0 - a1))
+    w2 -= 0.5 * a1.T.dot(da2)
+    w1 -= 0.5 * tr.T.dot(da1)
+'''
 
 
 nn = NeuralNetwork()
-activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU\n 3 - Softmax\n")
+activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU")
 learningRate = 0.01 #input("Enter a learning rate")
-epochs = 1 #input("Enter number of epochs")
+epochs = 50 #input("Enter number of epochs")
 nn.fit(learningRate, epochs, trainingImages, trainingLabels, activationChoice)
-print("done")
+print("training complete")
+index = int(input("Enter a number between 0 - 59999: "))
+yHat = nn.predict(trainingImages, activationChoice)
+print("prediction: ", yHat[index].argmax())
+print("actual: ", trainingLabels[index])
 
-'''
-Trying to match with example Lab solution, trying to do all images at once instead of loop method
-x:  (5, 3) | trainingImages is (60000, 784) 
-y:  (1, 5) [transpose to (5, 1)] | trainingLabels is (60000,) [converts to (60000, 10)]
-w1: (3, 4) | (784, 16) 
-z1: (5, 3) x (3, 4) = (5, 4) | (60000, 784) x (784, 16) = (60000, 16)
-w2: (4, 1) | (16, 10)
-z2: (5, 4) x (4, 1) = (5, 1) | (60000, 16) x (16, 10) = (60000, 10) 
 
-backprop:
-da2: (5, 1) | (60000, 10)
-da1: (5, 4) | (60000, 16)
-'''
+
