@@ -77,10 +77,6 @@ class NeuralNetwork():
         oneHotLabels = self.oneHotEncode(trainLabels)
         print("one-hot encoded labels shape: ", oneHotLabels.shape)
 
-        #for updating biases
-        #identityMatrix = np.ones((60000, 1))
-        identityMatrix = np.ones((1, 1))
-
         correct = 0
         
         for epoch in range (0, epochs):
@@ -98,33 +94,16 @@ class NeuralNetwork():
                 z2 = np.dot(a1, self.w2) + self.b2
                 #feeding into activation function again
                 a2 = self.activation(z2, activationFunc)
-
-                #probabilities = np.apply_along_axis(self.softmax, axis = 1, arr = a2)
-                #print("probabilities: ", probabilities[0])
                 
-                
+                ''' Cost/loss '''
                 error = np.apply_along_axis(self.loss, axis = 1, arr = label, output = a2)
                 correct += int(np.argmax(a2) == np.argmax(label))
-
-                '''
-                The highest probability of softmax is the one it chooses as its guess for what the label corresponds to
-                The label is an array 00000100000
-                And softmax is an array of floats
-                Meaning to produce a guess, based on the calculated probabilities, if you do label - probabilities
-                if the answer is > 0, the guess was correct.
-                i.e. label = 5 / 0000010000
-                    guess = highest probability of array
-                    test if guess is correct = label[highestProbability] - guess[highestProbability]
-                    if answer > 0, then correct
-                '''
                 
                 ''' Back prop '''
                 #delta a2 = dL/da2 * da2/dz2
                 #dL/da2 = oneHotLabels - a2 (Mean Squared Error derivative)
                 da2 = (a2 - label.T) * self.activationDerivatiive(a2, activationFunc)
-                '''
-                da2 = (oneHotLabels - results) * derivative softmax * self.activationDerivatiive(a2, activationFunc)
-                '''
+                
                 
                 #delta a1 = delta a2 * dz2/da1 * da1/dz1
                 #da1/dz1 = w2
@@ -139,7 +118,7 @@ class NeuralNetwork():
 
                 #dL/db2 = da2 * dz2/db2
                 #dz2/db2 = 1
-                self.b2 -= lr * da2 #np.dot(identityMatrix.T, da2)
+                self.b2 -= lr * da2
 
                 #dL/dw1 = delta a1 * dz1/dw1
                 #dz1/dw1 = trainImg
@@ -147,7 +126,7 @@ class NeuralNetwork():
                 
                 #dL/db1 = delta a1 * dz1/db1
                 #dz1/db1 = 1
-                self.b1 -= lr * da1 #np.dot(identityMatrix.T, da1)
+                self.b1 -= lr * da1
             
             print("epoch: ", epoch)
             print(f"Accuracy: {round((correct / trainImg.shape[0]) * 100, 2)}%")
@@ -159,49 +138,6 @@ class NeuralNetwork():
         z2 = np.dot(a1, self.w2) + self.b2
         a2 = self.activation(z2, activationFunc)
         return a2
-
-'''
-#Here is a simpler version of the neural network for testing
-
-# The numbers being fed into sigmoid need to be close to 0, otherwise, the output of the sigmoid function
-# will be 1 for every element in the numpy array. This is because sigmoid uses e^x.
-# When x is a negative number like -6000, the number produced from e^x becomes too small so the sigmoid function just
-# does 1 / 1 = 1 for every value. Sometimes even produces overflow errors
-# Question is why do the values become so weird on subsequent loops?
-
-def sigmoidTester(z):
-    return 1 / (1 + np.exp(-np.clip(z, -500, 500)))
-
-nn = NeuralNetwork()
-epochs = 50
-tr = trainingImages / 255.0
-w1 = 2 * np.random.rand(784, 16) - 1
-w2 = 2 * np.random.rand(16, 10) - 1
-print("w2 ", w2[0])
-y = nn.oneHotEncode(trainingLabels) 
-
-for epoch in range (0, epochs):
-    #~~forward prop~~
-    z1 = np.dot(tr, w1)
-    #print("z1 ", z1[0]) #This produces expected numbers for the first loop but subsequent loops look weird
-    a1 = sigmoidTester(z1)
-    #print("a1 ", a1[0])
-    z2 = np.dot(a1, w2)
-    #print("z2 ", z2[0])
-    a2 = sigmoidTester(z2)
-    #print("a2 ", a2[0])
-    
-    #~~backward prop~~
-    da2 = (y - a2) * (a2 * (1.0 - a2))
-    #print("da2 ", da2[0])
-    da1 = da2.dot(w2.T) * (a1 * (1.0 - a1))
-    #print("da1 ", da1[0])
-    w2 -= 0.5 * a1.T.dot(da2)
-    print("a1.T.dot(da2): ", a1.T.dot(da2)[0])
-    print("w2 updated", w2)
-    w1 -= 0.5 * tr.T.dot(da1)
-    #print("w1 updated", w1[0])
-'''
 
 
 nn = NeuralNetwork()
