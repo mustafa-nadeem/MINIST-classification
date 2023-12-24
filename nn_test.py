@@ -1,5 +1,6 @@
 #importing libraries
 import logging
+import random
 import math
 import matplotlib.pyplot as plt
 
@@ -18,6 +19,11 @@ with each element itself being an array of length 784 (all pixels of a 28x28 ima
 with each element in that array being a number 0 - 255 representing pixel brightness
 For trainImages to be dot multiplied, it needs to be turned into a numpy array
 '''
+
+#Seed for reproducibility of RNG
+seed = 1
+np.random.seed(seed)
+random.seed(seed)
 
 
 class NeuralNetwork():
@@ -63,26 +69,50 @@ class NeuralNetwork():
         return oneHotEncoded
 
         
-    def loss(self, label, output):
+    def cost(self, label, output):
 
         #Mean Squared Error
-        loss = 1 / len(output) * np.sum((output - label) ** 2, axis = 0)
+        cost = 1 / len(output) * np.sum((output - label) ** 2, axis = 0)
 
-        return loss
+        return cost
 
                 
     def fit (self, lr, epochs, trainImg, trainLabels, activationFunc):
         
         #required for cost/loss 
         oneHotLabels = self.oneHotEncode(trainLabels)
-        print("one-hot encoded labels shape: ", oneHotLabels.shape)
 
-        correct = 0
+        #Extracting number of rows from oneHotLabels because that's the number of images
+        numImages, columns = oneHotLabels.shape
+        #Number of cycles required to create array to plot graph showing change in gradient
+        numCycles  = numImages * epochs
+
+        #Required to ensure the change in gradient matches with the current cycle of the training loop
+        overallCycleNum = 0
+
+        #empty arrays the size of the total cycles required for training, to store outputs for graphs
+        layer1Grads = np.zeros((numCycles,1))
+        layer2Grads = np.zeros((numCycles,1))
+        w1Mags = np.zeros((numCycles,1))
+        w2Mags = np.zeros((numCycles,1))
+        a1Log = np.zeros((numCycles,1))
+        a2Log = np.zeros((numCycles,1))
+
+        #the number of times the NN correctly identifies a number during training
+        correct = 0    
         
         for epoch in range (0, epochs):
+            #Count of the current image being processed in the following for-loop
+            #Required to plot graph
+            imgCycle = 0
+
             for img, label in zip(trainImg, oneHotLabels):
+                #Changing shape of img and label so they can be dot multipled
                 img.shape += (1,)
                 label.shape += (1,)
+
+                #incrementing imgCycle so the gradients for the graphs are plotted in the correct positions
+                imgCycle += 1
 
                 ''' Forward prop '''
                 #input layer to hidden layer - matrix dot multiplication of weights with input layer + bias
@@ -96,12 +126,12 @@ class NeuralNetwork():
                 a2 = self.activation(z2, activationFunc)
                 
                 ''' Cost/loss '''
-                error = np.apply_along_axis(self.loss, axis = 1, arr = label, output = a2)
+                loss = np.apply_along_axis(self.cost, axis = 1, arr = label, output = a2)
                 correct += int(np.argmax(a2) == np.argmax(label))
                 
                 ''' Back prop '''
                 #delta a2 = dL/da2 * da2/dz2
-                #dL/da2 = oneHotLabels - a2 (Mean Squared Error derivative)
+                #dL/da2 = a2 - label (Mean Squared Error derivative)
                 da2 = (a2 - label.T) * self.activationDerivatiive(a2, activationFunc)
                 
                 
@@ -127,10 +157,30 @@ class NeuralNetwork():
                 #dL/db1 = delta a1 * dz1/db1
                 #dz1/db1 = 1
                 self.b1 -= lr * da1
+
+                #the total number of iterations of the training loop is the number of images * epochs
+                #imgCycle is the current image training cycle within the greater for-loop of epochs
+                overallCycleNum = (numImages * epoch) + imgCycle
+
+                #gradient values updated
+                if overallCycleNum < numCycles:
+                    layer1Grads[overallCycleNum] = np.sum(img.dot(da1))
+                    layer2Grads[overallCycleNum] = np.sum(a1.T.dot(da2))
+                    w1Mags[overallCycleNum] = np.sum(np.absolute(self.w1))
+                    w2Mags[overallCycleNum] = np.sum(np.absolute(self.w2))
+                    a1Log[overallCycleNum] = np.mean(a1)
+                    a2Log[overallCycleNum] = np.mean(a2)
+
             
             print("epoch: ", epoch)
             print(f"Accuracy: {round((correct / trainImg.shape[0]) * 100, 2)}%")
+            #reset so the accuracy is determined based on each epoch
             correct = 0
+        
+        #training returns gradients for plotting graphs
+        print("overallCycleNum: ", overallCycleNum)
+        gradients = np.array([layer1Grads, layer2Grads, w1Mags, w2Mags, a1Log, a2Log])
+        return gradients
         
     def predict(self, x, activationFunc):
         z1 = np.dot(x, self.w1) + self.b1
@@ -143,13 +193,15 @@ class NeuralNetwork():
 nn = NeuralNetwork()
 activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU")
 learningRate = 0.01 #input("Enter a learning rate")
-epochs = 5 #input("Enter number of epochs")
+epochs = 2 #input("Enter number of epochs")
 
-#converts to 0 - 1 range to avoid overflow from activation function
+#converts image pixel values from 0 - 255 to 0 - 1 range, avoiding overflow from activation function
 trainingImages = trainingImages / 255 
 
-nn.fit(learningRate, epochs, trainingImages, trainingLabels, activationChoice)
+#training returns gradients for plotting graphs
+gradients = nn.fit(learningRate, epochs, trainingImages, trainingLabels, activationChoice)
 print("training complete")
+
 while True:
     index = int(input("Enter a number between 0 - 59999: "))
     yHat = nn.predict(trainingImages, activationChoice)
