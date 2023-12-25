@@ -48,13 +48,18 @@ class NeuralNetwork():
     def activationDerivatiive(self, x, af):
         if af == "1":
             #Sigmoid derivative
-            return x * (1.0 - x)
+            s = 1 / (1 + np.exp(-x))
+            return s * (1.0 - s)
         elif af == "2":
             #ReLU derivative
             return (x >= 0) * 1
     
     def softmax(self, x):
         return np.exp(x) / np.sum(np.exp(x))
+    
+    def softmaxDerivative(self, x):
+        s = x.reshape(-1, 1)
+        return np.diagflat(s) - np.dot(s, s.T)
 
     def oneHotEncode(self, label):
         '''
@@ -124,7 +129,7 @@ class NeuralNetwork():
                 z2 = np.dot(a1, self.w2) + self.b2
                 #feeding into activation function again
                 a2 = self.activation(z2, activationFunc)
-                
+
                 ''' Cost/loss '''
                 loss = np.apply_along_axis(self.cost, axis = 1, arr = label, output = a2)
                 correct += int(np.argmax(a2) == np.argmax(label))
@@ -132,12 +137,11 @@ class NeuralNetwork():
                 ''' Back prop '''
                 #delta a2 = dL/da2 * da2/dz2
                 #dL/da2 = a2 - label (Mean Squared Error derivative)
-                da2 = (a2 - label.T) * self.activationDerivatiive(a2, activationFunc)
-                
-                
+                da2 = (a2 - label.T) * self.activationDerivatiive(z2, activationFunc)
+
                 #delta a1 = delta a2 * dz2/da1 * da1/dz1
                 #da1/dz1 = w2
-                da1 = da2.dot(self.w2.T) * self.activationDerivatiive(a1, activationFunc)
+                da1 = da2.dot(self.w2.T) * self.activationDerivatiive(z1, activationFunc)
 
                 #--Updating Weights and Biases--
 
@@ -187,18 +191,20 @@ class NeuralNetwork():
         a1 = self.activation(z1, activationFunc)
         z2 = np.dot(a1, self.w2) + self.b2
         a2 = self.activation(z2, activationFunc)
-        return a2
+        sm = self.softmax(a2)
+        return sm
 
 
 nn = NeuralNetwork()
 activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU")
 learningRate = 0.01 #input("Enter a learning rate")
-epochs = 2 #input("Enter number of epochs")
+epochs = 1 #input("Enter number of epochs")
 
 #converts image pixel values from 0 - 255 to 0 - 1 range, avoiding overflow from activation function
 trainingImages = trainingImages / 255 
 
 #training returns gradients for plotting graphs
+print("training in progress...")
 gradients = nn.fit(learningRate, epochs, trainingImages, trainingLabels, activationChoice)
 print("training complete")
 
