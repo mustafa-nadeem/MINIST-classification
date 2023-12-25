@@ -130,14 +130,17 @@ class NeuralNetwork():
                 #feeding into activation function again
                 a2 = self.activation(z2, activationFunc)
 
-                ''' Cost/loss '''
-                loss = np.apply_along_axis(self.cost, axis = 1, arr = label, output = a2)
+
+                ''' Softmax, then Cost/loss '''
+                smOutput = self.softmax(a2)
+                loss = np.apply_along_axis(self.cost, axis = 1, arr = label, output = smOutput)
                 correct += int(np.argmax(a2) == np.argmax(label))
                 
                 ''' Back prop '''
-                #delta a2 = dL/da2 * da2/dz2
-                #dL/da2 = a2 - label (Mean Squared Error derivative)
-                da2 = (a2 - label.T) * self.activationDerivatiive(z2, activationFunc)
+                #delta a2 = dL/dS * dS/da2 * da2/dz2
+                #dL/dS = smOutput - label (Mean Squared Error derivative)
+                #dS/da2 = softmax derivative
+                da2 = np.dot((smOutput - label.T), self.softmaxDerivative(smOutput)) * self.activationDerivatiive(z2, activationFunc)
 
                 #delta a1 = delta a2 * dz2/da1 * da1/dz1
                 #da1/dz1 = w2
@@ -198,7 +201,7 @@ class NeuralNetwork():
 nn = NeuralNetwork()
 activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU")
 learningRate = 0.01 #input("Enter a learning rate")
-epochs = 1 #input("Enter number of epochs")
+epochs = 5 #input("Enter number of epochs")
 
 #converts image pixel values from 0 - 255 to 0 - 1 range, avoiding overflow from activation function
 trainingImages = trainingImages / 255 
