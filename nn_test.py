@@ -43,7 +43,7 @@ class NeuralNetwork():
             return 1 / (1 + np.exp(-x))
         elif af == "2":
             #ReLU
-            return np.maximum(0, x)
+            return x * (x > 0)
     
     def activationDerivatiive(self, x, af):
         if af == "1":
