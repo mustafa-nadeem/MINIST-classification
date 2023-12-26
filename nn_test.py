@@ -58,6 +58,7 @@ class NeuralNetwork():
         return np.exp(x) / np.sum(np.exp(x))
     
     def softmaxDerivative(self, x):
+        #x is output numpy array from softmax
         s = x.reshape(-1, 1)
         return np.diagflat(s) - np.dot(s, s.T)
 
@@ -80,6 +81,17 @@ class NeuralNetwork():
         cost = 1 / len(output) * np.sum((output - label) ** 2, axis = 0)
 
         return cost
+
+    def crossEntropyLoss(self, actual, predicted):
+        #actual value/label needs to be one-hot encoded
+        loss = -np.sum(actual * np.log(predicted))
+        return loss
+    
+    def celDerivative(self, actual, predicted):
+        #actual value/label needs to be one-hot encoded
+        derivative = predicted - actual
+        #derivative is (10, 10) but the rows are the same. Only one row required
+        return derivative[0]
 
                 
     def fit (self, lr, epochs, trainImg, trainLabels, activationFunc):
@@ -133,14 +145,14 @@ class NeuralNetwork():
 
                 ''' Softmax, then Cost/loss '''
                 smOutput = self.softmax(a2)
-                loss = np.apply_along_axis(self.cost, axis = 1, arr = label, output = smOutput)
+                loss = self.crossEntropyLoss(label, smOutput)
                 correct += int(np.argmax(a2) == np.argmax(label))
                 
                 ''' Back prop '''
                 #delta a2 = dL/dS * dS/da2 * da2/dz2
-                #dL/dS = smOutput - label (Mean Squared Error derivative)
+                #dL/dS = cross entropy loss derivative
                 #dS/da2 = softmax derivative
-                da2 = np.dot((smOutput - label.T), self.softmaxDerivative(smOutput)) * self.activationDerivatiive(z2, activationFunc)
+                da2 = np.dot(self.celDerivative(label, smOutput), self.softmaxDerivative(smOutput)) * self.activationDerivatiive(z2, activationFunc)
 
                 #delta a1 = delta a2 * dz2/da1 * da1/dz1
                 #da1/dz1 = w2
@@ -201,7 +213,7 @@ class NeuralNetwork():
 nn = NeuralNetwork()
 activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU")
 learningRate = 0.01 #input("Enter a learning rate")
-epochs = 5 #input("Enter number of epochs")
+epochs = 1 #input("Enter number of epochs")
 
 #converts image pixel values from 0 - 255 to 0 - 1 range, avoiding overflow from activation function
 trainingImages = trainingImages / 255 
