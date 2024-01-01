@@ -85,13 +85,7 @@ class NeuralNetwork():
     def crossEntropyLoss(self, actual, predicted):
         #actual value/label needs to be one-hot encoded
         loss = -np.sum(actual * np.log(predicted))
-        return loss
-    
-    def celDerivative(self, actual, predicted):
-        #actual value/label needs to be one-hot encoded
-        derivative = predicted - actual
-        #derivative is (10, 10) but the rows are the same. Only one row required
-        return derivative[0]
+        return loss    
 
                 
     def fit (self, lr, epochs, trainImg, trainLabels, activationFunc):
@@ -141,18 +135,21 @@ class NeuralNetwork():
                 z2 = np.dot(a1, self.w2) + self.b2
                 #feeding into activation function again
                 a2 = self.activation(z2, activationFunc)
+                #a2 = self.softmax(z2)
+                
 
 
                 ''' Softmax, then Cost/loss '''
                 smOutput = self.softmax(a2)
-                loss = self.crossEntropyLoss(label, smOutput)
+                #loss = self.crossEntropyLoss(label, smOutput)
+                #loss = self.crossEntropyLoss(label, a2)
                 correct += int(np.argmax(a2) == np.argmax(label))
                 
                 ''' Back prop '''
                 #delta a2 = dL/dS * dS/da2 * da2/dz2
-                #dL/dS = cross entropy loss derivative
+                #dL/dS = cross entropy loss derivative = (smOutput - label.T)
                 #dS/da2 = softmax derivative
-                da2 = np.dot(self.celDerivative(label, smOutput), self.softmaxDerivative(smOutput)) * self.activationDerivatiive(z2, activationFunc)
+                da2 = (smOutput - label.T) * self.activationDerivatiive(z2, activationFunc)
 
                 #delta a1 = delta a2 * dz2/da1 * da1/dz1
                 #da1/dz1 = w2
@@ -212,8 +209,8 @@ class NeuralNetwork():
 
 nn = NeuralNetwork()
 activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU")
-learningRate = 0.01 #input("Enter a learning rate")
-epochs = 1 #input("Enter number of epochs")
+learningRate = 0.13 #input("Enter a learning rate")
+epochs = 5 #input("Enter number of epochs")
 
 #converts image pixel values from 0 - 255 to 0 - 1 range, avoiding overflow from activation function
 trainingImages = trainingImages / 255 
