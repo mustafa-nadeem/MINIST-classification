@@ -27,7 +27,11 @@ random.seed(seed)
 
 
 class NeuralNetwork():
-    def __init__(self):
+    def __init__(self, layer_sizes, activation_funcs):
+        # Initializing the network with customizable layers and activation functions
+        self.layer_sizes = layer_sizes
+        self.activation_funcs = activation_funcs
+        self.dropout_masks = []  # To store dropout masks for each layer
 
         #generate weights
         self.w1 = 2 * np.random.rand(784, 16) - 1 
@@ -74,6 +78,11 @@ class NeuralNetwork():
         
         return oneHotEncoded
 
+    def dropout(self, x, dropout_rate):
+    mask = np.random.binomial(1, 1 - dropout_rate, size=x.shape) / (1 - dropout_rate)
+    self.dropout_masks.append(mask)
+    return x * mask
+
         
     def cost(self, label, output):
 
@@ -88,7 +97,7 @@ class NeuralNetwork():
         return loss    
 
                 
-    def fit (self, lr, epochs, trainImg, trainLabels, activationFunc):
+    def fit (self, lr, epochs, trainImg, trainLabels, activationFunc, dropout_rate=0.0):
         
         #required for cost/loss 
         oneHotLabels = self.oneHotEncode(trainLabels)
