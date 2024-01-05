@@ -25,12 +25,16 @@ seed = 1
 np.random.seed(seed)
 random.seed(seed)
 
+layer_sizes = [784, 16, 10]  # Example: Input layer, one hidden layer, output layer
+activation_funcs = ["1", "1"]  # Assuming "1" is for Sigmoid
+
+
 
 class NeuralNetwork():
-    def __init__(self):
+    def __init__(self, layer_sizes, activation_funcs):
         # Initializing the network with customizable layers and activation functions
-        # self.layer_sizes = layer_sizes
-        # self.activation_funcs = activation_funcs
+        self.layer_sizes = layer_sizes
+        self.activation_funcs = activation_funcs
         self.dropout_masks = []  # To store dropout masks for each layer
 
         #generate weights
@@ -77,12 +81,15 @@ class NeuralNetwork():
             oneHotEncoded[x, label] = 1
         
         return oneHotEncoded
+    def dropout(self, x, dropout_rate, is_training=True):
+        if is_training:
+            # Inverted dropout mask
+            mask = np.random.binomial(1, 1 - dropout_rate, size=x.shape) / (1 - dropout_rate)
+            self.dropout_masks.append(mask)
+            return x * mask
+        else:
+            return x  # No change to the input during testing
 
-    def dropout(self, x, dropout_rate):
-        # The following line should be indented to indicate it's part of the function
-        mask = np.random.binomial(1, 1 - dropout_rate, size=x.shape) / (1 - dropout_rate)
-        self.dropout_masks.append(mask)
-        return x * mask
 
         
     def cost(self, label, output):
@@ -135,24 +142,19 @@ class NeuralNetwork():
                 #incrementing imgCycle so the gradients for the graphs are plotted in the correct positions
                 imgCycle += 1
 
-                ''' Forward prop '''
-                #input layer to hidden layer - matrix dot multiplication of weights with input layer + bias
+
+        # Forward prop
                 z1 = np.dot(img.T, self.w1) + self.b1
-                #feeding z1 into activation function for non-linearity
                 a1 = self.activation(z1, activationFunc)
-                
-                #hidden layer to output layer - dot multiplication of weights with output of first layer + bias
+                a1 = self.dropout(a1, dropout_rate, is_training=True)  # Apply dropout after activation
+
                 z2 = np.dot(a1, self.w2) + self.b2
-                #feeding into activation function again
                 a2 = self.activation(z2, activationFunc)
-                #a2 = self.softmax(z2)
-                
+                a2 = self.dropout(a2, dropout_rate, is_training=True)  # Apply dropout after activation
 
 
                 ''' Softmax, then Cost/loss '''
                 smOutput = self.softmax(a2)
-                #loss = self.crossEntropyLoss(label, smOutput)
-                #loss = self.crossEntropyLoss(label, a2)
                 correct += int(np.argmax(a2) == np.argmax(label))
                 
                 ''' Back prop '''
@@ -207,17 +209,22 @@ class NeuralNetwork():
         print("overallCycleNum: ", overallCycleNum)
         gradients = np.array([layer1Grads, layer2Grads, w1Mags, w2Mags, a1Log, a2Log])
         return gradients
-        
+    
     def predict(self, x, activationFunc):
         z1 = np.dot(x, self.w1) + self.b1
         a1 = self.activation(z1, activationFunc)
+        a1 = self.dropout(a1, 0.0, is_training=False)  # No dropout during testing
+
         z2 = np.dot(a1, self.w2) + self.b2
         a2 = self.activation(z2, activationFunc)
+        a2 = self.dropout(a2, 0.0, is_training=False)  # No dropout during testing
+
         sm = self.softmax(a2)
         return sm
+    
 
 
-nn = NeuralNetwork()
+nn = NeuralNetwork(layer_sizes, activation_funcs)
 activationChoice = "1" #input("Choose an activation function\n 1 - Sigmoid\n 2 - ReLU")
 learningRate = 0.13 #input("Enter a learning rate")
 epochs = 5 #input("Enter number of epochs")
